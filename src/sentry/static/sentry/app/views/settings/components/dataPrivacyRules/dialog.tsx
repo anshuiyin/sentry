@@ -8,45 +8,43 @@ import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
-import {RuleType, MethodType} from './types';
+import Form from './form';
+import {RuleType, MethodType, EventId, SourceSuggestion, Rule, Errors} from './types';
 
 const DEFAULT_RULE_SOURCE_VALUE = '';
 
-type FormProps = React.ComponentProps<typeof DataPrivacyRulesPanelForm>;
-type Rule = FormProps['rule'];
-type Errors = FormProps['errors'];
-type Error = keyof Errors;
-
-type Props = Pick<
-  FormProps,
-  'sourceSuggestions' | 'disabled' | 'eventId' | 'onUpdateEventId'
-> & {
-  rule?: Rule;
-  onSaveRule: (rule: Rule) => Promise<{errors: Errors} | undefined>;
+type Props = {
   onClose: () => void;
+  onSaveRule: (rule: Rule) => void;
+  onUpdateEventId?: (eventId: string) => void;
+  sourceSuggestions?: Array<SourceSuggestion>;
+  eventId?: EventId;
+  rule?: Rule;
+  disabled?: boolean;
 };
 
 type State = {
   rule: Rule;
   isFormValid: boolean;
   errors: Errors;
+  isNewRule: boolean;
 };
 
-class DataPrivacyRulesModal extends React.Component<Props, State> {
+class Dialog extends React.Component<Props, State> {
   state: State = {
     rule: {
       id: defined(this.props.rule?.id) ? this.props.rule?.id! : -1,
       type: this.props.rule?.type || RuleType.CREDITCARD,
       method: this.props.rule?.method || MethodType.MASK,
       source: this.props.rule?.source || DEFAULT_RULE_SOURCE_VALUE,
-      customRegularExpression: this.props.rule?.customRegularExpression,
+      customRegex: this.props.rule?.customRegex,
     },
+    isNewRule: defined(this.props.rule?.id),
     isFormValid: false,
     errors: {},
   };
 
-  clearError = (error: Error) => {
+  clearError = (error: keyof Errors) => {
     this.setState(prevState => ({
       errors: omit(prevState.errors, error),
     }));
@@ -59,12 +57,12 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
     };
 
     if (rule.type !== RuleType.PATTERN) {
-      delete rule?.customRegularExpression;
-      this.clearError('customRegularExpression');
+      delete rule?.customRegex;
+      this.clearError('customRegex');
     }
 
-    if (stateProperty === 'customRegularExpression' || stateProperty === 'source') {
-      this.clearError(stateProperty as Error);
+    if (stateProperty === 'customRegex' || stateProperty === 'source') {
+      this.clearError(stateProperty as keyof Omit<Rule, 'id'>);
     }
 
     this.setState(
@@ -109,33 +107,27 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
     });
   };
 
-  handleSave = async () => {
+  handleSave = () => {
     const {rule} = this.state;
     const {onSaveRule, onClose} = this.props;
 
-    await onSaveRule(rule).then(result => {
-      if (!result) {
-        onClose();
-        return;
-      }
+    console.log('here');
 
-      this.setState({
-        errors: result.errors,
-      });
-    });
+    onSaveRule(rule);
+    onClose();
   };
 
   render() {
     const {onClose, disabled, sourceSuggestions, onUpdateEventId, eventId} = this.props;
-    const {rule, isFormValid, errors} = this.state;
+    const {rule, isFormValid, errors, isNewRule} = this.state;
 
     return (
       <StyledModal show animation={false} onHide={onClose}>
         <Modal.Header closeButton>
-          {rule?.id !== -1 ? t('Edit a data privacy rule') : t('Add a data privacy rule')}
+          {isNewRule ? t('Add a data privacy rule') : t('Edit a data privacy rule')}
         </Modal.Header>
         <Modal.Body>
-          <DataPrivacyRulesPanelForm
+          <Form
             onChange={this.handleChange}
             onValidate={this.handleValidation}
             sourceSuggestions={sourceSuggestions}
@@ -165,7 +157,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesModal;
+export default Dialog;
 
 const StyledModal = styled(Modal)`
   .modal-dialog {

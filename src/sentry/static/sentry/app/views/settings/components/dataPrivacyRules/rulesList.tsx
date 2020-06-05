@@ -8,10 +8,10 @@ import TextOverflow from 'app/components/textOverflow';
 import {IconDelete, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
 
-import DataPrivacyRulesForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
-import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
+import Form from './form';
+import {getRuleLabel, getMethodLabel} from './utils';
 
-type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
+type Rule = React.ComponentProps<typeof Form>['rule'];
 type Props = {
   rules: Array<Rule>;
   onShowEditRuleModal?: (id: Rule['id']) => () => void;
@@ -26,8 +26,8 @@ const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
   return (
     <List ref={ref} isDisabled={disabled}>
       {rules.map(({id, method, type, source}) => {
-        const methodLabel = getMethodTypeLabel(method);
-        const typelabel = getRuleTypeLabel(type);
+        const methodLabel = getMethodLabel(method);
+        const typelabel = getRuleLabel(type);
         return (
           <ListItem key={id}>
             <TextOverflow>

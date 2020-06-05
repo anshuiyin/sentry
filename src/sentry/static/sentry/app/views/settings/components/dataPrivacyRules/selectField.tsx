@@ -15,7 +15,7 @@ type Props = Pick<
   'value' | 'placeholder' | 'name' | 'onChange' | 'options' | 'isDisabled'
 >;
 
-class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
+class SelectField extends React.Component<Props> {
   componentDidMount() {
     if (!this.selectRef.current) {
       return;
@@ -66,7 +66,7 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
   }
 }
 
-export default DataPrivacyRulesPanelFormSelectControl;
+export default SelectField;
 
 const Description = styled('div')`
   color: ${p => p.theme.gray500};

@@ -6,18 +6,13 @@ import TextField from 'app/components/forms/textField';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import DataPrivacyRulesPanelFormField from './dataPrivacyRulesFormField';
-import DataPrivacyRulesFormEventIdStatusIcon from './dataPrivacyRulesFormEventIdStatusIcon';
-import {EventIdStatus} from '../types';
-
-type EventId = {
-  value: string;
-  status?: EventIdStatus;
-};
+import FormField from './formField';
+import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
+import {EventIdStatus, EventId} from './types';
 
 type Props = {
   onUpdateEventId: (eventId: string) => void;
-  eventId: EventId;
+  eventId?: EventId;
   disabled?: boolean;
 };
 
@@ -26,10 +21,10 @@ type State = {
   status?: EventIdStatus;
 };
 
-class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
+class EventIdField extends React.Component<Props, State> {
   state = {
-    value: this.props.eventId.value,
-    status: this.props.eventId.status,
+    value: this.props.eventId?.value || '',
+    status: this.props.eventId?.status,
   };
 
   componentDidUpdate(prevProps: Props) {
@@ -111,13 +106,13 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
     const {value, status} = this.state;
 
     return (
-      <DataPrivacyRulesPanelFormField
+      <FormField
         label={t('Event ID (Optional)')}
         tooltipInfo={t(
           'Providing an event ID will automatically provide you a list of suggested sources'
         )}
       >
-        <EventIdFieldWrapper>
+        <FieldWrapper>
           <StyledTextField
             name="eventId"
             disabled={disabled}
@@ -130,17 +125,17 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
             error={this.getErrorMessage()}
           />
           <Status>
-            <DataPrivacyRulesFormEventIdStatusIcon
+            <EventIdFieldStatusIcon
               onClickIconClose={this.handleClickIconClose}
               status={status}
             />
           </Status>
-        </EventIdFieldWrapper>
-      </DataPrivacyRulesPanelFormField>
+        </FieldWrapper>
+      </FormField>
     );
   }
 }
-export default DataPrivacyRulesFormEventId;
+export default EventIdField;
 
 const StyledTextField = styled(TextField)<{showStatus: boolean}>`
   flex: 1;
@@ -161,7 +156,7 @@ const Status = styled('div')`
   align-items: center;
 `;
 
-const EventIdFieldWrapper = styled('div')`
+const FieldWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;

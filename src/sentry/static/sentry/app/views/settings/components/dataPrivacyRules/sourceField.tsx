@@ -7,18 +7,15 @@ import TextField from 'app/components/forms/textField';
 import TextOverflow from 'app/components/textOverflow';
 import {defined} from 'app/utils';
 
-import {
-  unaryOperatorSuggestions,
-  binaryOperatorSuggestions,
-} from './dataPrivacyRulesFormSourceSuggestions';
+import {unarySuggestions, binarySuggestions} from './utils';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
-import {SourceSuggestion, SourceSuggestionType} from '../types';
+import {SourceSuggestion, SourceSuggestionType} from './types';
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  suggestions: Array<SourceSuggestion>;
   isRegExMatchesSelected: boolean;
+  suggestions?: Array<SourceSuggestion>;
   error?: string;
   onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
@@ -33,7 +30,7 @@ type State = {
   help?: string;
 };
 
-class Source extends React.Component<Props, State> {
+class SourceField extends React.Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
@@ -65,15 +62,11 @@ class Source extends React.Component<Props, State> {
   suggestionList = React.createRef<HTMLUListElement>();
 
   getAllSuggestions() {
-    return [
-      ...this.getValueSuggestions(),
-      ...unaryOperatorSuggestions,
-      ...binaryOperatorSuggestions,
-    ];
+    return [...this.getValueSuggestions(), ...unarySuggestions, ...binarySuggestions];
   }
 
   getValueSuggestions() {
-    return this.props.suggestions;
+    return this.props.suggestions || [];
   }
 
   getFilteredSuggestions = (value: string, type: SourceSuggestionType) => {
@@ -81,7 +74,7 @@ class Source extends React.Component<Props, State> {
 
     switch (type) {
       case SourceSuggestionType.BINARY: {
-        valuesToBeFiltered = binaryOperatorSuggestions;
+        valuesToBeFiltered = binarySuggestions;
         break;
       }
       case SourceSuggestionType.VALUE: {
@@ -89,11 +82,11 @@ class Source extends React.Component<Props, State> {
         break;
       }
       case SourceSuggestionType.UNARY: {
-        valuesToBeFiltered = unaryOperatorSuggestions;
+        valuesToBeFiltered = unarySuggestions;
         break;
       }
       default: {
-        valuesToBeFiltered = [...this.getValueSuggestions(), ...unaryOperatorSuggestions];
+        valuesToBeFiltered = [...this.getValueSuggestions(), ...unarySuggestions];
       }
     }
 
@@ -177,12 +170,6 @@ class Source extends React.Component<Props, State> {
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
   };
 
-  hideSuggestions = () => {
-    this.setState({
-      showSuggestions: false,
-    });
-  };
-
   loadFieldValues = (newValue: string) => {
     const fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>> = [];
 
@@ -208,12 +195,12 @@ class Source extends React.Component<Props, State> {
         );
         if (!selector) {
           fieldValues.push([
-            unaryOperatorSuggestions[0],
+            unarySuggestions[0],
             {type: SourceSuggestionType.STRING, value: valueAfterUnaryOperator},
           ]);
           continue;
         }
-        fieldValues.push([unaryOperatorSuggestions[0], selector]);
+        fieldValues.push([unarySuggestions[0], selector]);
         continue;
       }
 
@@ -235,33 +222,26 @@ class Source extends React.Component<Props, State> {
     });
   };
 
-  checkPossiblyRegExMatchExpression = (value: string) => {
-    const {isRegExMatchesSelected} = this.props;
-    const {help} = this.state;
+  scrollToSuggestion = () => {
+    const {activeSuggestion, hideCaret} = this.state;
 
-    if (isRegExMatchesSelected) {
-      if (help) {
-        this.setState({help: ''});
-      }
-      return;
-    }
+    this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    });
 
-    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
-
-    if (help) {
-      if (!isPossiblyARegularExpression) {
-        this.setState({
-          help: '',
-        });
-      }
-      return;
-    }
-
-    if (isPossiblyARegularExpression) {
+    if (!hideCaret) {
       this.setState({
-        help: t("You might want to change Data Type's value to 'Regex matches'"),
+        hideCaret: true,
       });
     }
+  };
+
+  hideSuggestions = () => {
+    this.setState({
+      showSuggestions: false,
+    });
   };
 
   handleChange = (newValue: string) => {
@@ -334,22 +314,6 @@ class Source extends React.Component<Props, State> {
     );
   };
 
-  scrollToSuggestion = () => {
-    const {activeSuggestion, hideCaret} = this.state;
-
-    this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
-    });
-
-    if (!hideCaret) {
-      this.setState({
-        hideCaret: true,
-      });
-    }
-  };
-
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     event.persist();
 
@@ -388,6 +352,35 @@ class Source extends React.Component<Props, State> {
     });
   };
 
+  checkPossiblyRegExMatchExpression = (value: string) => {
+    const {isRegExMatchesSelected} = this.props;
+    const {help} = this.state;
+
+    if (isRegExMatchesSelected) {
+      if (help) {
+        this.setState({help: ''});
+      }
+      return;
+    }
+
+    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
+
+    if (help) {
+      if (!isPossiblyARegularExpression) {
+        this.setState({
+          help: '',
+        });
+      }
+      return;
+    }
+
+    if (isPossiblyARegularExpression) {
+      this.setState({
+        help: t("You might want to change Data Type's value to 'Regex matches'"),
+      });
+    }
+  };
+
   render() {
     const {error, disabled, value, onBlur} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
@@ -409,34 +402,29 @@ class Source extends React.Component<Props, State> {
         />
         {showSuggestions && suggestions.length > 0 && (
           <React.Fragment>
-            <SuggestionsWrapper
-              ref={this.suggestionList}
-              data-test-id="source-suggestions"
-            >
+            <Suggestions ref={this.suggestionList} data-test-id="source">
               {suggestions.slice(0, 50).map((suggestion, index) => (
-                <SuggestionItem
+                <Suggestion
                   key={suggestion.value}
                   onClick={this.handleClickSuggestionItem(suggestion)}
                   active={index === activeSuggestion}
                   tabIndex={-1}
                 >
                   <TextOverflow>{suggestion.value}</TextOverflow>
-
                   {suggestion.description && (
                     <SuggestionDescription>
                       (<TextOverflow>{suggestion.description}</TextOverflow>)
                     </SuggestionDescription>
                   )}
-
                   {suggestion.examples && suggestion.examples.length > 0 && (
                     <SourceSuggestionExamples
                       examples={suggestion.examples}
                       sourceName={suggestion.value}
                     />
                   )}
-                </SuggestionItem>
+                </Suggestion>
               ))}
-            </SuggestionsWrapper>
+            </Suggestions>
             <SuggestionsOverlay onClick={this.handleClickOutside} />
           </React.Fragment>
         )}
@@ -445,7 +433,7 @@ class Source extends React.Component<Props, State> {
   }
 }
 
-export default Source;
+export default SourceField;
 
 const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
@@ -466,7 +454,7 @@ const StyledTextField = styled(TextField)`
   }
 `;
 
-const SuggestionsWrapper = styled('ul')`
+const Suggestions = styled('ul')`
   position: absolute;
   width: 100%;
   padding-left: 0;
@@ -484,7 +472,7 @@ const SuggestionsWrapper = styled('ul')`
   overflow-y: auto;
 `;
 
-const SuggestionItem = styled('li')<{active: boolean}>`
+const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr max-content;
   grid-gap: ${space(1)};

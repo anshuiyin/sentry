@@ -6,32 +6,27 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 
-import {Rule, RuleType, MethodType} from '../types';
-import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
-import Source from './source';
-import DataPrivacyRulesFormField from './dataPrivacyRulesFormField';
-import DataPrivacyRulesFormSelectControl from './dataPrivacyRulesFormSelectControl';
-import DataPrivacyRulesFormEventId from './dataPrivacyRulesFormEventId';
+import EventIdField from './eventIdField';
+import FormField from './formField';
+import SelectField from './selectField';
+import SourceField from './sourceField';
+import {getRuleLabel, getMethodLabel} from './utils';
+import {MethodType, RuleType, Rule, SourceSuggestion, EventId, Errors} from './types';
 
-type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
-type SourceProps = React.ComponentProps<typeof Source>;
-type Errors = {
-  customRegularExpression?: string;
-  source?: string;
-};
-
-type Props = EventIdProps & {
+type Props = {
   rule: Rule;
-  sourceSuggestions: SourceProps['suggestions'];
   onChange: <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => void;
-  onUpdateEventId: (eventId: string) => void;
-  onValidate: <T extends keyof Errors>(field: T) => () => void;
-  errors: Errors;
+  onValidate: <T extends keyof Omit<Rule, 'id'>>(field: T) => () => void;
+  onUpdateEventId?: (eventId: string) => void;
+  sourceSuggestions?: Array<SourceSuggestion>;
+  eventId?: EventId;
+  disabled?: boolean;
+  errors?: Errors;
 };
 
-const DataPrivacyRulesForm = ({
+const Form = ({
   disabled,
-  rule: {source, customRegularExpression, type, method},
+  rule: {source, customRegex, type, method},
   errors,
   sourceSuggestions,
   onUpdateEventId,
@@ -41,80 +36,82 @@ const DataPrivacyRulesForm = ({
 }: Props) => (
   <Wrapper>
     <WrapperSelectFields>
-      <DataPrivacyRulesFormField label={t('Method')} tooltipInfo={t('What to do')}>
-        <DataPrivacyRulesFormSelectControl
+      <FormField label={t('Method')} tooltipInfo={t('What to do')}>
+        <SelectField
           placeholder={t('Select method')}
           name="method"
           options={sortBy(Object.values(MethodType)).map(value => ({
-            ...getMethodTypeLabel(value),
+            ...getMethodLabel(value),
             value,
           }))}
           value={method}
           onChange={({value}) => onChange('method', value)}
           isDisabled={disabled}
         />
-      </DataPrivacyRulesFormField>
-      <DataPrivacyRulesFormField
+      </FormField>
+      <FormField
         label={t('Data Type')}
         tooltipInfo={t(
           'What to look for. Use an existing pattern or define your own using regular expressions.'
         )}
       >
-        <DataPrivacyRulesFormSelectControl
+        <SelectField
           placeholder={t('Select type')}
           name="type"
           options={sortBy(Object.values(RuleType)).map(value => ({
-            label: getRuleTypeLabel(value),
+            label: getRuleLabel(value),
             value,
           }))}
           value={type}
           onChange={({value}) => onChange('type', value)}
           isDisabled={disabled}
         />
-      </DataPrivacyRulesFormField>
+      </FormField>
     </WrapperSelectFields>
     {type === RuleType.PATTERN && (
-      <DataPrivacyRulesFormField
+      <FormField
         label={t('Regex matches')}
         tooltipInfo={t('Custom Perl-style regex (PCRE)')}
         isFullWidth
       >
-        <CustomRegularExpression
-          name="customRegularExpression"
+        <RegularExpression
+          name="customRegex"
           placeholder={t('[a-zA-Z0-9]+')}
           onChange={(value: string) => {
-            onChange('customRegularExpression', value);
+            onChange('customRegex', value);
           }}
-          value={customRegularExpression}
-          onBlur={onValidate('customRegularExpression')}
-          error={errors.customRegularExpression}
+          value={customRegex}
+          onBlur={onValidate('customRegex')}
+          error={errors?.customRegex}
           disabled={disabled}
         />
-      </DataPrivacyRulesFormField>
+      </FormField>
     )}
-    <DataPrivacyRulesFormEventId onUpdateEventId={onUpdateEventId} eventId={eventId} />
-    <DataPrivacyRulesFormField
+    {onUpdateEventId && (
+      <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
+    )}
+    <FormField
       label={t('Source')}
       tooltipInfo={t(
         'Where to look. In the simplest case this can be an attribute name.'
       )}
     >
-      <Source
+      <SourceField
         onChange={(value: string) => {
           onChange('source', value);
         }}
-        isRegExMatchesSelected={type === RuleType.PATTERN}
         value={source}
         onBlur={onValidate('source')}
+        isRegExMatchesSelected={type === RuleType.PATTERN}
         suggestions={sourceSuggestions}
-        error={errors.source}
+        error={errors?.source}
         disabled={disabled}
       />
-    </DataPrivacyRulesFormField>
+    </FormField>
   </Wrapper>
 );
 
-export default DataPrivacyRulesForm;
+export default Form;
 
 const Wrapper = styled('div')`
   display: grid;
@@ -130,7 +127,7 @@ const WrapperSelectFields = styled('div')`
   }
 `;
 
-const CustomRegularExpression = styled(TextField)`
+const RegularExpression = styled(TextField)`
   font-size: ${p => p.theme.fontSizeSmall};
   height: 40px;
   input {
